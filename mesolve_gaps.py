@@ -1,5 +1,5 @@
 """Master-equation cross-check of BLP and LPP only (no direct T-scan of the
-other measures). Prints the numbers for the Fig. 2 caption.
+other measures). Prints the numbers for the Figs. 3 and 5 captions.
 
     python mesolve_gaps.py --E 2.0 --Gamma 0.5 --tmax 320 --nt 32001 --T 0.01 0.1 1.0 10.0
 """

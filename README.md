@@ -32,11 +32,11 @@ pip install numpy scipy matplotlib qutip tqdm pytest
 | `replot.py` | Redraws a two-panel figure from a saved `series.npz`, without recomputing. Optionally overlays the master-equation check, cached in `mesolve_check.npz`. |
 | `blind_map.py` | `N_BLP` over the `(E, Gamma)` plane (Fig. 6), and an optional cut across the threshold. |
 | `mu_sweep.py` | Measures against the chemical potential at fixed `T` (Fig. 7). |
-| `msv_families.py` | MSV lower bounds per family (populations, coherences, antipodal), plus a free 5-parameter optimum (Table I, Appendix C). |
+| `msv_families.py` | MSV lower bounds per family (populations, coherences, antipodal), plus a free 5-parameter optimum (Table I, Appendix B 3). |
 | `convergence.py` | Window dependence at the Fig. 3 point: writes `data/conv_tmax*.csv` and `data/dip_tmax*.csv` and prints the truncation estimate (≈6% at Ωt = 320) and the MSV dip depth and crossover quoted in Sec. IV. |
 | `mesolve_gaps.py` | Prints the direct vs master-equation differences for BLP and LPP (figure captions). |
 | `quadratic_schematic.py` | Schematic of the general quadratic model (Fig. 1). |
-| `test_nm.py` | Tests: sum rule `Z_beta = 1 - |G|^2` for a filled band, its convergence order, `dZ/dt`, fast vs slow `Z`. |
+| `test_nm.py` | Tests: sum rule `Z_beta = 1 - |G|^2` for a filled band, its fourth-order convergence, `dZ/dt`, fast vs slow `Z`. |
 | `data/` | Saved runs (see below). |
 | `figures/` | Generated figures. Every plot is written as both `.pdf` and `.png`. |
 
@@ -46,30 +46,30 @@ points listed below appear in the paper.
 ## How the code maps onto the paper
 
 The paper's equations are implemented in `non_markovianity.py` as follows (`F = 0` throughout, since the
-chain has no pairing terms).
+chain has no pairing terms). Equation names are the `\label`s in the manuscript's LaTeX source.
 
 | Paper | Code | Notes |
 |---|---|---|
 | Newns density `J_N(ω)`, Eq. (newns) | `NonMarkovianModel._J` | |
 | `φ(ω)`, Eq. (varphi) | `NonMarkovianModel._phi` | Uses `ω − E − Re Σ = ω(1 − Γ/2Ω) − E` and `π J_N = (Γ/2Ω)√(Ω² − ω²)`. |
-| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound) | `bound_states(E, Gamma, Omega)` | Returns `(ω_b, R_b)`. Older outputs call the residue `Z_b` (`series.npz`, CSV columns). |
+| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound) | `bound_states(E, Gamma, Omega)` | Returns `(ω_b, R_b)`. The saved outputs (`series.npz`, CSV columns) still call the residue `Z_b`. |
 | `G(t)`, Eqs. (G-fourier), (G-bound) | `G_t`, built in `compute_kernels` | Band integral on the grid `ω = Ω sin θ`, plus bound-state poles. |
 | `γ(t) = −∂_t ln|G|²` and `H(t)`, Eq. (gammaH) | `Gamma_t` and `omega_eff_t` | `Gamma_t` is the paper's **γ(t)**, not the coupling `Γ`. |
 | `Z_β(t)`, Eq. (noise_app) | `Z_Tt`, built in `compute_rates` | Single-integral form `∫ J_N f |g(ω,t)|² dω`; the double integral (Eq. Zdouble) is kept as `fast=False`. |
 | `Λ^+ = Ż + γ Z`, `Λ^- = γ − Λ^+`, Eqs. (lambdaplus), (lambdaminus) | `Lambda_plus_t`, `Lambda_minus_t` | Checked in `_validate`: `G(0) = 1`, `γ(0) = 0`, `0 ≤ Z ≤ 1 − |G|²`. |
-| `N_BLP`, Eq. (blpbound) | `blp_direct` | `max(Σ₊Δ|G|, Σ₊Δ|G|²)`: the polar and equatorial endpoints of Appendix B. `theta_scan=True` scans the whole antipodal family. |
+| `N_BLP`, Eq. (blpbound) | `blp_direct` | `max(Σ₊Δ|G|, Σ₊Δ|G|²)`: the polar and equatorial endpoints of Appendix B 1. `theta_scan=True` scans the whole antipodal family. |
 | `N_LPP`, `det A = |G|⁴` | `lpp_direct` | |
-| `N_MSV`, Eq. (msvbound) | `msv_direct` (figures), `msv_families.py` (table) | Best of the three families of Appendix C; a lower bound. |
+| `N_MSV`, Eq. (msvbound) | `msv_direct` (figures), `msv_families.py` (table) | Best of the three families of Appendix B 3; a lower bound. |
 | `N_RHPE`, concurrence Eq. (concurrence) | `rhpe_direct` | `∫|∂_t C| − [C(0) − C(∞)]`, i.e. twice the summed increases of `C`. |
 | `N_RHP`, Eq. (RHPresult) | `rhp_direct` | `∫ max(0, −Λ^+) + max(0, −Λ^-) dt`. Diverges logarithmically at zeros of `G` (a warning is issued). |
 | RHP floor `N^(0)_RHP`, Eq. (rhpfloor) | `∫ max(0, −Gamma_t) dt` | Computed from `series.npz` or the model; not a separate method. |
-| Master-equation check, Eq. (master_equation) | `run(..., direct=False)` → `blp`, `lpp`, `rhp` | Evolves the reconstructed generator with `qutip.mesolve`. |
+| Master-equation check, Eq. (master_equation) | `run(..., direct=False)` → `blp`, `lpp`, `msv`, `rhp` | Evolves the reconstructed generator with `qutip.mesolve`. `msv` sees only the polar and equatorial pairs (a lower bound on `msv_direct`); RHPE has no such route and falls back to `rhpe_direct`. |
 
 **Index convention.** Inside the code, index 0 is the **occupied** state and index 1 the vacuum, because
 QuTiP's `sigmap() = |0><1|`. This mirrors the paper, where `|0>` is the vacuum. When comparing code with
 the paper, read `rho_00` in the code as `rho_11` in the paper. None of the measures depends on this.
 
-**Discretisation.** The time integrals use a uniform grid: `t = linspace(0, tmax, nt)` with `nt` odd, for
+**Discretization.** The time integrals use a uniform grid: `t = linspace(0, tmax, nt)` with `nt` odd, for
 the cumulative Simpson rule. The direct BLP, LPP and MSV estimators sum positive increments on that grid.
 
 ## Reproducing the paper
