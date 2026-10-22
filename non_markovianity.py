@@ -19,18 +19,18 @@ single-particle propagator G(t):
 
 	Phi(t)   = ∫ dω e^{-iωt} J(ω) f((ω-μ)/T)         (noise kernel)
 	G(t)     = ∫ dω e^{-iωt} φ(ω)                     (propagator)
-	Γ(t)     = Re[ 2i G'(t) / G(t) ]                  (bare loss rate)
+	γ(t)     = Re[ 2i G'(t) / G(t) ] = -d ln|G|^2/dt  (total rate; Gamma_t in code)
 	g(ω,t)   = ∫_0^t e^{iωt'} G(t') dt'
 	Z(T,t)   = ∫ dω J(ω) f((ω-μ)/T) |g(ω,t)|^2        (noise variance)
-	Λ_+(t)   = Ż(T,t) + Γ(t) Z(T,t)
-	Λ_-(t)   = Γ(t) - Λ_+(t)
+	Λ_+(t)   = Ż(T,t) + γ(t) Z(T,t)
+	Λ_-(t)   = γ(t) - Λ_+(t)
 	G'(t)    = ∫ω e^{-iωt}φ dω = i dG/dt
 
-Four non-Markovianity measures can be computed as a function of temperature T:
+Five non-Markovianity measures can be computed as a function of temperature T:
 
 	BLP  -- Breuer–Laine–Piilo: backflow of trace distance between an optimal
 	        state pair. Temperature independent.
-	LPP  -- Lorenzo–Plastina–Paternostro: growth of |det F(t)| of the Pauli
+	LPP  -- Lorenzo–Plastina–Paternostro: growth of det A(t) = |G(t)|^4 of the Pauli
 	        transfer matrix (volume of accessible states). Temperature independent.
 	MSV  -- Megier-Smirne-Vacchini (entropic): backflow of the square root of
             the quantum Jensen-Shannon divergence. Temperature dependent.
@@ -214,7 +214,7 @@ def _grid_disc(n):
 # --------------------------------------------------------------------------- #
 # Bound-state helpers (FIX): a localized level splits off the band when        #
 # |E| > Omega - Gamma/2. The excitation distribution then carries a discrete   #
-# pole,  phi(w) = phi_continuum(w) + Z_b delta(w - w_b)  (paper eq. 25), which #
+# pole,  phi(w) = phi_continuum(w) + R_b delta(w - w_b)  (Eq. G-bound),  which #
 # must be added to the propagator G(t). _sigma is the real-axis self-energy of #
 # the semicircular band.                                                       #
 # --------------------------------------------------------------------------- #
@@ -227,7 +227,7 @@ def _dsigma(w, G, O):
 
 
 def bound_states(E, G, O):
-	"""Localized levels [(omega_b, residue Z_b), ...] with |omega_b| > Omega.
+	"""Localized levels [(omega_b, residue R_b), ...] with |omega_b| > Omega.
 	Onset is |E| = Omega - Gamma/2 (Apollaro parabola h/J = 1 - (J0/J)^2/2)."""
 	out = []
 	root = lambda w: w - E - _sigma(w, G, O)
@@ -299,7 +299,8 @@ class ModelConfig:
 # Model                                                                       #
 # --------------------------------------------------------------------------- #
 class NonMarkovianModel:
-	"""Reconstructs the time-local generator and evaluates BLP/LPP/RHP."""
+	"""Reconstructs the time-local generator and evaluates the five measures
+	(BLP, LPP, MSV, RHPE, RHP)."""
 	
 	def __init__(self, cfg: ModelConfig | None = None, verbose: bool = True, exact_phase: bool = True):
 		self._Wmat = None
@@ -470,7 +471,8 @@ class NonMarkovianModel:
 		self.G_t = G_t
 		self.G_moment1_t = G_moment1_t
 		self.G_dagger_t = np.conj(G_t)
-		# Bare loss rate Gamma(t) = Re[2i G'/G]; 1D (broadcast over T later).
+		# Total rate gamma(t) = Re[2i G'/G] = -d ln|G|^2/dt: the paper's gamma(t),
+		# not the coupling Gamma. 1D (broadcast over T later).
 		self.Gamma_t = np.real(2j * G_moment1_t / G_t)
 		# Renormalised (Lamb-shifted) energy H(t) = -Im(dG/dt / G) = Re(G'/G),
 		# the imaginary part of -dG/dt/G = 2i G'/G. T-independent. Used only by
@@ -727,7 +729,7 @@ class NonMarkovianModel:
 		return out
 	
 	def lpp(self) -> np.ndarray:
-		"""det-F (volume) measure N_LPP(T)."""
+		"""LPP (volume of accessible states) measure N_LPP(T), from det A."""
 		self._ensure_maps()
 		out = np.empty(len(self.cfg.T))
 		for i, A_list in enumerate(self._A_lists):
@@ -868,10 +870,10 @@ class NonMarkovianModel:
 	def blp_bound_is_tight(self, verbose: bool = True):
 		"""Test whether the BLP lower bound is attained.
 
-		The appendix maximises Delta_s window by window; the bound is an equality
+		The appendix maximises Delta D_u window by window; the bound is an equality
 		only if one endpoint wins in every window, i.e. if sign(G_a + G_b - 1) is
 		constant. A sufficient condition is min_t |G| >= 1/2, which holds when
-		Z_b >= 3/4. Returns (tight, windows).
+		R_b >= 3/4. Returns (tight, windows).
 		"""
 		w = self.rising_windows()
 		if not w:
@@ -889,7 +891,7 @@ class NonMarkovianModel:
 		return tight, w
 	
 	def check_A_of_t(self, iT: int = 0, atol: float = 1e-10) -> float:
-		"""Verify that det F built from _A_of_t equals |G|^4."""
+		"""Verify that det A built from _A_of_t equals |G|^4."""
 		self.compute_rates()
 		worst = 0.0
 		for A, Gk in zip(self._A_list(iT), self.G_t):
@@ -939,7 +941,7 @@ class NonMarkovianModel:
 	
 	# noinspection PyUnusedLocal
 	def lpp_direct(self, iT: int = 0) -> float:
-		"""LPP closed form: positive increases of |G(t)|^4 (= |det F|).
+		"""LPP closed form: positive increases of |G(t)|^4 (= det A).
 		Temperature-independent."""
 		self.compute_kernels()
 		v = np.abs(self.G_t) ** 4
@@ -995,8 +997,9 @@ class NonMarkovianModel:
 		return (best, vals) if return_all else best
 	
 	def rhpe_direct(self, iT: int = 0) -> float:
-		"""First RHP measure (entanglement/Choi) with concurrence as the monotone:
-		sum of positive increases of the concurrence of (Phi_t (x) I)|Phi+>.
+		"""RHPE measure (entanglement/Choi) with concurrence C as the monotone:
+		int |dC/dt| dt - [C(0) - C(inf)], i.e. twice the summed increases of the
+		concurrence of (Phi_t (x) I)|Phi+>.
 		Built from G(t), Z(t); no map inverse, so no pinv/singularity issues."""
 		self.compute_rates()
 		g = np.abs(self.G_t)
@@ -1042,13 +1045,15 @@ class NonMarkovianModel:
 
 		Parameters
 		----------
-		measures : sequence of {"BLP", "LPP", "RHP"}
+		measures : sequence of {"BLP", "LPP", "MSV", "RHPE", "RHP"}
 		direct : bool, default True
 			If True (recommended) use the analytic, mesolve-free estimators
-			(blp_direct / lpp_direct / rhp_direct): robust to the singular
+			(blp_direct / lpp_direct / msv_direct / rhpe_direct / rhp_direct): robust to the singular
 			time-local rates that appear when |G(t)| crosses zero, and (for
 			LPP/RHP) more accurate than the mesolve route. If False, use the
-			original mesolve route (blp / lpp / rhp).
+			original mesolve route (blp / lpp / msv / rhp). The mesolve MSV sees
+			only the polar and equatorial pairs, so it is a lower bound on
+			msv_direct; RHPE has no mesolve route and falls back to rhpe_direct.
 		"""
 		measures = [m.upper() for m in measures]
 		for m in measures:
@@ -1068,8 +1073,14 @@ class NonMarkovianModel:
 				results["BLP"] = self.blp()
 			if "LPP" in measures:
 				results["LPP"] = self.lpp()
+			if "MSV" in measures:
+				results["MSV"] = self.msv()
 			if "RHP" in measures:
 				results["RHP"] = self.rhp()
+			if "RHPE" in measures:
+				warnings.warn("RHPE has no master-equation route; using rhpe_direct",
+				              RuntimeWarning, stacklevel=2)
+				results["RHPE"] = np.array([self.rhpe_direct(iT) for iT in range(len(self.cfg.T))])
 		return results
 
 
@@ -1132,12 +1143,12 @@ def _writable_stem(s: str) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
 	p = argparse.ArgumentParser(
-		description="Compute BLP / LPP / RHP non-Markovianity measures for the "
+		description="Compute the BLP, LPP, MSV, RHPE and RHP non-Markovianity measures for the "
 		            "1D spin-chain / quantum-dot model.",
 		formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 	)
 	p.add_argument("--measure", "-m", nargs="+", default=["all"],
-	               help="Measures to compute: BLP, LPP, RHP, or 'all'.")
+	               help="Measures to compute: BLP, LPP, MSV, RHPE, RHP, or 'all'.")
 	# physics
 	p.add_argument("--Gamma", type=float, default=1.0)
 	p.add_argument("--Omega", type=float, default=1.0)
@@ -1167,7 +1178,9 @@ def build_parser() -> argparse.ArgumentParser:
 	               help="Suppress progress messages.")
 	p.add_argument("--mesolve", action="store_true", default=False,
 	               help="Use the original mesolve route instead of the "
-	                    "default direct (mesolve-free) estimators.")
+	                    "default direct (mesolve-free) estimators. MSV is then "
+	                    "restricted to the polar and equatorial pairs, and RHPE "
+	                    "falls back to the direct estimator.")
 	
 	return p
 

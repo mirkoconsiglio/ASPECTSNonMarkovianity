@@ -2,7 +2,7 @@
 r"""Where are the trace-distance measures blind?  The (E, Gamma) plane.
 
 For the F = 0 model every pair on the BLP Pareto front has
-sgn(d D_s / dt) = sgn(d|G| / dt)  (Appendix B), so
+sgn(d D_u / dt) = sgn(d|G| / dt)  (Appendix B), so
 
     N_BLP = 0   <=>   N_LPP = 0   <=>   |G(t)| is non-increasing.
 
@@ -361,7 +361,7 @@ def main(argv=None):
     p.add_argument("--mark", nargs=3, action="append", default=None,
                    metavar=("E", "GAMMA", "LABEL"),
                    help="Mark a parameter point; repeat for several. Default: "
-                        "the points of Figs. 2, 3 and 4.")
+                        "the points of Figs. 3, 4 and 5.")
     p.add_argument("--cut", type=float, default=None, metavar="GAMMA",
                    help="Instead of the map, compute all measures on a line "
                         "crossing the threshold at this Gamma.")
