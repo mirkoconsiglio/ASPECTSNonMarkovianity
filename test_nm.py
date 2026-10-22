@@ -29,13 +29,6 @@ def test_sum_rule_vs_Gamma(Gamma):
 
 
 @pytest.mark.parametrize("E", [0.0, 2.0])
-def test_sum_rule_second_order(E):
-	errs = [sum_rule_error(E=E, nt=n) for n in (501, 1001, 2001, 4001)]
-	ratios = [errs[i] / errs[i + 1] for i in range(len(errs) - 1)]
-	assert all(3.0 < r < 5.0 for r in ratios), (errs, ratios)
-
-
-@pytest.mark.parametrize("E", [0.0, 2.0])
 def test_sum_rule_fourth_order(E):
 	errs = [sum_rule_error(E=E, nt=n) for n in (501, 1001, 2001, 4001)]
 	ratios = [errs[i] / errs[i + 1] for i in range(len(errs) - 1)]
@@ -50,7 +43,7 @@ def test_sum_rule(Gamma=1.0, Omega=1.0, E=0.0, tmax=20.0, nt=2001, n_omega=4097,
 	    int dw J_N(w) |g(w,t)|^2 = 1 - |G(t)|^2 .
 	Z_beta(t) is that integral weighted by f(w), so putting the chemical
 	potential far above the band (f == 1 across the support of J_N) must return
-	1 - |G(t)|^2 identically. This exercises the FFT-convolution path, the
+	1 - |G(t)|^2 identically. This exercises the cumulative-Simpson Z path, the
 	quadrature table and the bound-state poles in one shot.
 	"""
 	cfg = ModelConfig(Gamma=Gamma, Omega=Omega, E=E, mu=100.0 * Omega,
