@@ -312,8 +312,8 @@ def build_parser() -> argparse.ArgumentParser:
 	p.add_argument("--free", action="store_true",
 	               help="Also run the five-parameter multistart optimisation.")
 	p.add_argument("--nstart", type=int, default=40)
-	p.add_argument("--csv", default="tab.csv")
-	p.add_argument("--latex", default="tab.tex")
+	p.add_argument("--csv", default="data/tab.csv")
+	p.add_argument("--latex", default="data/tab.tex")
 	p.add_argument("--quiet", "-q", action="store_true")
 	return p
 
