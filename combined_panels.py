@@ -248,7 +248,7 @@ def draw_panel_a(model, iT, axs, shade_color="0.88", annotate=True,
     ax0.set_ylim(model.G_abs_min - 0.02, 1.02)
 
     ax1.axhline(0.0, color="0.6", lw=0.6, zorder=1)
-    ax1.plot(t, model.Gamma_t, color="0.25", lw=0.9, label=r"$\Gamma$")
+    ax1.plot(t, model.Gamma_t, color="0.25", lw=0.9, label=r"$\gamma$")
     ax1.plot(t, model.Lambda_plus_t[iT], color="C3", label=r"$\Lambda^{+}$")
     ax1.plot(t, model.Lambda_minus_t[iT], color="C2", label=r"$\Lambda^{-}$")
     ax1.set_ylabel(r"rates$\,/\,\Omega$")
@@ -291,8 +291,28 @@ _INSET_LOC = {
 }
 
 
+# Legend positions for panel (b). "upper right" suits curves that fall with
+# T; when every curve is flat (e.g. below the bound-state threshold) the
+# middle of a log axis is usually the empty part.
+_LEGEND_LOC = ("upper right", "upper left", "lower left", "lower right",
+               "center right", "center left", "lower center", "upper center",
+               "best")
+
+# Where panel (b) names the measures that vanish identically, as
+# (x, y, ha, va) in axes fractions. Move it when a flat curve runs along the
+# bottom of the frame.
+_ZERO_LOC = {
+    "lower left":   (0.03, 0.03, "left", "bottom"),
+    "lower right":  (0.97, 0.03, "right", "bottom"),
+    "center left":  (0.03, 0.50, "left", "center"),
+    "center right": (0.97, 0.50, "right", "center"),
+    "upper left":   (0.03, 0.90, "left", "top"),
+}
+
+
 def draw_panel_b(res, ax, check=None, inset=True, logy=False, logx=False,
-                 inset_loc="upper right"):
+                 inset_loc="upper right", legend_loc="upper right",
+                 zero_loc="lower left"):
     """Draw the measures-versus-temperature panel into ``ax``.
 
     With ``logx`` the temperature axis is logarithmic; a T = 0 point, if present,
@@ -310,10 +330,13 @@ def draw_panel_b(res, ax, check=None, inset=True, logy=False, logx=False,
     # values, mark the last finite point with an open circle, and keep the
     # all-zero measures out of the legend -- a legend entry with no curve to
     # find is worse than no entry -- naming them in a corner instead.
-    vanish = [k for k in present
-              if logy and np.all(np.asarray(res[k]) == 0.0)]
+    # Values at round-off level (|N| < 1e-12, e.g. +-1e-16 from a difference
+    # of equal concurrences) are zero, not revivals.
+    clean = {k: np.where(np.abs(np.asarray(res[k], dtype=float)) < 1e-12, 0.0,
+                         np.asarray(res[k], dtype=float)) for k in present}
+    vanish = [k for k in present if logy and np.all(clean[k] == 0.0)]
     for k in present:
-        y = np.asarray(res[k], dtype=float)
+        y = clean[k] if logy else np.asarray(res[k], dtype=float)
         style = dict(_STYLE[k])
         if logy:
             y = np.where(y > 0.0, y, np.nan)
@@ -345,12 +368,17 @@ def draw_panel_b(res, ax, check=None, inset=True, logy=False, logx=False,
     else:
         ymax = max(float(np.max(res[k])) for k in present)
         ax.set_ylim(0.0, 1.08 * ymax if ymax > 0 else 1.0)
-    ax.legend(loc="upper right", ncol=1, handlelength=1.6, labelspacing=0.3)
+    # "lower/upper center" lay the legend out in rows of three, a strip that
+    # fits under (or over) the curves instead of a tall column in a corner.
+    wide = legend_loc in ("lower center", "upper center")
+    ax.legend(loc=legend_loc, ncol=3 if wide else 1, handlelength=1.6,
+              labelspacing=0.3, columnspacing=1.0 if wide else 2.0)
 
     if logy and vanish:
+        zx, zy, zha, zva = _ZERO_LOC[zero_loc]
         ax.annotate(" = ".join(_STYLE[k]["label"] for k in vanish) + r"$\,\equiv 0$",
-                    xy=(0.03, 0.03), xycoords="axes fraction",
-                    ha="left", va="bottom", fontsize=8)
+                    xy=(zx, zy), xycoords="axes fraction",
+                    ha=zha, va=zva, fontsize=8)
 
     if inset and all(k in res for k in ("BLP", "LPP")):
         bounds = (_INSET_LOC[inset_loc] if isinstance(inset_loc, str)
@@ -397,7 +425,8 @@ def temperature_grid(Tmax=10.0, nT=41, T_log=None):
 def build(E=2.0, Gamma=0.5, Omega=1.0, mu=0.0, tmax=40.0, nt=4001,
           T_panel_a=1.0, Tmax=10.0, nT=41, T_log=None, inset=True,
           inset_loc="upper right", logy=False, logx=None, check_T=None,
-          t_window=None, annot_loc="lower right", make_fig=True):
+          t_window=None, annot_loc="lower right", legend_loc="upper right",
+          zero_loc="lower left", make_fig=True):
     """Evaluate one (E, Gamma) point and (optionally) draw its figure.
 
     Returns (fig_or_None, res, info, model). ``res`` is the dict returned by
@@ -446,7 +475,8 @@ def build(E=2.0, Gamma=0.5, Omega=1.0, mu=0.0, tmax=40.0, nt=4001,
     draw_panel_a(model, iT_a, (a0, a1, a2), t_window=t_window,
                  annot_loc=annot_loc)
     draw_panel_b(res, b, check=check, inset=inset, inset_loc=inset_loc,
-                 logy=logy, logx=logx)
+                 logy=logy, logx=logx, legend_loc=legend_loc,
+                 zero_loc=zero_loc)
 
     for ax, lab in ((a0, "(a)"), (b, "(b)")):
         ax.annotate(lab, xy=(0.02, 0.96), xycoords="axes fraction",
@@ -540,8 +570,8 @@ def sweep(E_list, Gamma_list, csv_path="data/sweep_measures.csv",
         if fig is not None:
             folder = os.path.join(fig_dir, f"E_{E:.1f}_Gamma_{Gamma:.1f}")
             os.makedirs(folder, exist_ok=True)
-            fig.savefig(os.path.join(folder, "figure2.pdf"), bbox_inches="tight")
-            fig.savefig(os.path.join(folder, "figure2.png"), dpi=600,
+            fig.savefig(os.path.join(folder, "figure.pdf"), bbox_inches="tight")
+            fig.savefig(os.path.join(folder, "figure.png"), dpi=600,
                         bbox_inches="tight")
             plt.close(fig)                            # keep memory flat
 
@@ -638,6 +668,11 @@ def build_parser():
                    default="lower right",
                    help="Corner of the top panel (a) holding the parameter "
                         "annotation.")
+    p.add_argument("--legend-loc", choices=_LEGEND_LOC, default="upper right",
+                   help="Position of the legend in panel (b).")
+    p.add_argument("--zero-loc", choices=tuple(_ZERO_LOC), default="lower left",
+                   help="Where panel (b) names the measures that vanish "
+                        "identically (log axis only).")
     p.add_argument("--inset-rect", type=float, nargs=4, default=None,
                    metavar=("X0", "Y0", "W", "H"),
                    help="Explicit inset rectangle in axes fractions, "
@@ -662,6 +697,7 @@ def main(argv=None):
           inset=not a.no_inset, inset_loc=(a.inset_rect or a.inset_loc),
           logy=a.logy,
           t_window=a.t_window, annot_loc=a.annot_loc,
+          legend_loc=a.legend_loc, zero_loc=a.zero_loc,
           logx=(False if a.no_logx else None), check_T=a.mesolve_check)
     return 0
 
