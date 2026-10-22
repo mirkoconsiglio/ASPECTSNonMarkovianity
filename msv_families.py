@@ -58,7 +58,7 @@ Or import it:
     from msv_families import msv_lower_bound, family_values
     lb = msv_lower_bound(model, iT)          # max over the three families
 
-Requires: numpy, scipy, and ``non_markovianity.py`` (or ``spin_chain_1d.py``)
+Requires: numpy, scipy, and ``non_markovianity.py`` (or ``non_markovianity.py``)
 on the import path.
 """
 
@@ -69,7 +69,7 @@ from typing import Dict, Sequence, Tuple
 
 import numpy as np
 
-from spin_chain_1d import ModelConfig, NonMarkovianModel, _h2, _eta, _revivals
+from non_markovianity import ModelConfig, NonMarkovianModel, _h2, _eta, _revivals
 
 FAMILIES = ("polar", "populations", "coherences", "antipodal")
 

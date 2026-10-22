@@ -55,7 +55,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 try:
-    from spin_chain_1d import ModelConfig, NonMarkovianModel, VALID_MEASURES, _h2
+    from non_markovianity import ModelConfig, NonMarkovianModel, VALID_MEASURES, _h2
 except ImportError as _exc:  # drawing-only use (replot.py) needs none of these
     ModelConfig = NonMarkovianModel = None
     VALID_MEASURES = ("BLP", "LPP", "MSV", "RHPE", "RHP")

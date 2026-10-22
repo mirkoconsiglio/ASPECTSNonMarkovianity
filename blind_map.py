@@ -43,7 +43,7 @@ import time
 
 import numpy as np
 
-from spin_chain_1d import ModelConfig, NonMarkovianModel, bound_states
+from non_markovianity import ModelConfig, NonMarkovianModel, bound_states
 
 
 def save_figure(fig, path, dpi=600):

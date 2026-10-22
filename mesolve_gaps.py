@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from spin_chain_1d import ModelConfig, NonMarkovianModel
+from non_markovianity import ModelConfig, NonMarkovianModel
 
 warnings.filterwarnings("ignore")
 

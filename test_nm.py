@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from spin_chain_1d import ModelConfig, NonMarkovianModel
+from non_markovianity import ModelConfig, NonMarkovianModel
 
 
 def sum_rule_error(Gamma=1.0, Omega=1.0, E=0.0, tmax=20.0, nt=2001, n_omega=4097):
