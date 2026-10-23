@@ -5,7 +5,7 @@ Code and data behind the figures and table of
 > M. Consiglio, I. Khomchenko and T. J. G. Apollaro,
 > *Bath-state (In)dependence of Non-Markovianity Measures in Quadratic Open Systems*.
 
-The model is a single fermionic level (a spin, after the Jordan–Wigner mapping) with on-site energy
+The model is a single fermionic site with on-site energy
 `E`, coupled with strength `sqrt(Gamma*Omega)/2` to the end of a semi-infinite free-fermion chain with
 hopping `Omega/2` (band `[-Omega, Omega]`). The chain is held in a Gibbs state at temperature `T` and
 chemical potential `mu`. All energies are in units of `Omega` (`Omega = 1` throughout the paper), with
@@ -25,20 +25,20 @@ pip install numpy scipy matplotlib qutip tqdm pytest
 
 ## Files
 
-| File | Role |
-|---|---|
-| `non_markovianity.py` | Core model: kernels, `G(t)`, `Z_beta(t)`, rates `Lambda^±(t)`, and the five measures (direct and master-equation routes). Also a command-line tool. |
-| `combined_panels.py` | Computes one parameter point and draws the two-panel figure (time series + measures vs `T`). Writes `data/E_<E>_Gamma_<Gamma>/series.{csv,npz}`, `data/sweep_measures.csv` and the figure. Figs. 3–5. |
-| `replot.py` | Redraws a two-panel figure from a saved `series.npz`, without recomputing. Optionally overlays the master-equation check, cached in `mesolve_check.npz`. |
-| `blind_map.py` | `N_BLP` over the `(E, Gamma)` plane (Fig. 6), and an optional cut across the threshold. |
-| `mu_sweep.py` | Measures against the chemical potential at fixed `T` (Fig. 7). |
-| `msv_families.py` | MSV lower bounds per family (populations, coherences, antipodal), plus a free 5-parameter optimum (Table I, Appendix B 3). |
-| `convergence.py` | Window dependence at the Fig. 3 point: writes `data/conv_tmax*.csv` and `data/dip_tmax*.csv` and prints the truncation estimate (≈6% at Ωt = 320) and the MSV dip depth and crossover quoted in Sec. IV. |
-| `mesolve_gaps.py` | Prints the direct vs master-equation differences for BLP and LPP (figure captions). |
-| `quadratic_schematic.py` | Schematic of the general quadratic model (Fig. 1). |
-| `test_nm.py` | Tests: sum rule `Z_beta = 1 - |G|^2` for a filled band, its fourth-order convergence, `dZ/dt`, fast vs slow `Z`. |
-| `data/` | Saved runs (see below). |
-| `figures/` | Generated figures. Every plot is written as both `.pdf` and `.png`. |
+| File                     | Role                                                                                                                                                                                                     |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `non_markovianity.py`    | Core model: kernels, `G(t)`, `Z_beta(t)`, rates `Lambda^±(t)`, and the five measures (direct and master-equation routes). Also a command-line tool.                                                      |
+| `combined_panels.py`     | Computes one parameter point and draws the two-panel figure (time series + measures vs `T`). Writes `data/E_<E>_Gamma_<Gamma>/series.{csv,npz}`, `data/sweep_measures.csv` and the figure. Figs. 3–5.    |
+| `replot.py`              | Redraws a two-panel figure from a saved `series.npz`, without recomputing. Optionally overlays the master-equation check, cached in `mesolve_check.npz`.                                                 |
+| `blind_map.py`           | `N_BLP` over the `(E, Gamma)` plane (Fig. 6), and an optional cut across the threshold.                                                                                                                  |
+| `mu_sweep.py`            | Measures against the chemical potential at fixed `T` (Fig. 7).                                                                                                                                           |
+| `msv_families.py`        | MSV lower bounds per family (populations, coherences, antipodal), plus a free 5-parameter optimum (Table I, Appendix B 3).                                                                               |
+| `convergence.py`         | Window dependence at the Fig. 3 point: writes `data/conv_tmax*.csv` and `data/dip_tmax*.csv` and prints the truncation estimate (≈6% at Ωt = 320) and the MSV dip depth and crossover quoted in Sec. IV. |
+| `mesolve_gaps.py`        | Prints the direct vs master-equation differences for BLP and LPP (figure captions).                                                                                                                      |
+| `quadratic_schematic.py` | Schematic of the general quadratic model (Fig. 1).                                                                                                                                                       |
+| `test_nm.py`             | Tests: sum rule `Z_beta = 1 - \|G\|^2` for a filled band, its fourth-order convergence, `dZ/dt`, fast vs slow `Z`.                                                                                       |
+| `data/`                  | Saved runs (see below).                                                                                                                                                                                  |
+| `figures/`               | Generated figures. Every plot is written as both `.pdf` and `.png`.                                                                                                                                      |
 
 `figures/` also holds exploratory `E_<E>_Gamma_<Gamma>/` folders from parameter sweeps. Only the three
 points listed below appear in the paper.
@@ -48,22 +48,22 @@ points listed below appear in the paper.
 The paper's equations are implemented in `non_markovianity.py` as follows (`F = 0` throughout, since the
 chain has no pairing terms). Equation names are the `\label`s in the manuscript's LaTeX source.
 
-| Paper | Code | Notes |
-|---|---|---|
-| Newns density `J_N(ω)`, Eq. (newns) | `NonMarkovianModel._J` | |
-| `φ(ω)`, Eq. (varphi) | `NonMarkovianModel._phi` | Uses `ω − E − Re Σ = ω(1 − Γ/2Ω) − E` and `π J_N = (Γ/2Ω)√(Ω² − ω²)`. |
-| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound) | `bound_states(E, Gamma, Omega)` | Returns `(ω_b, R_b)`; saved as `R_b` in `series.npz` and the CSVs. |
-| `G(t)`, Eqs. (G-fourier), (G-bound) | `G_t`, built in `compute_kernels` | Band integral on the grid `ω = Ω sin θ`, plus bound-state poles. |
-| `γ(t) = −∂_t ln|G|²` and `H(t)`, Eq. (gammaH) | `gamma_t` and `H_t` | `gamma_t` is the total rate γ(t); `Gamma` (capital) is always the coupling Γ. |
-| `Z_β(t)`, Eq. (noise_app) | `Z_Tt`, built in `compute_rates` | Single-integral form `∫ J_N f |g(ω,t)|² dω`; the double integral (Eq. Zdouble) is kept as `fast=False`. |
-| `Λ^+ = Ż + γ Z`, `Λ^- = γ − Λ^+`, Eqs. (lambdaplus), (lambdaminus) | `Lambda_plus_t`, `Lambda_minus_t` | Checked in `_validate`: `G(0) = 1`, `γ(0) = 0`, `0 ≤ Z ≤ 1 − |G|²`. |
-| `N_BLP`, Eq. (blpbound) | `blp_direct` | `max(Σ₊Δ|G|, Σ₊Δ|G|²)`: the polar and equatorial endpoints of Appendix B 1. `theta_scan=True` scans the whole antipodal family. |
-| `N_LPP`, `det A = |G|⁴` | `lpp_direct` | |
-| `N_MSV`, Eq. (msvbound) | `msv_direct` (figures), `msv_families.py` (table) | Best of the three families of Appendix B 3; a lower bound. |
-| `N_RHPE`, concurrence Eq. (concurrence) | `rhpe_direct` | `∫|∂_t C| − [C(0) − C(∞)]`, i.e. twice the summed increases of `C`. |
-| `N_RHP`, Eq. (RHPresult) | `rhp_direct` | `∫ max(0, −Λ^+) + max(0, −Λ^-) dt`. Diverges logarithmically at zeros of `G` (a warning is issued). |
-| RHP floor `N^(0)_RHP`, Eq. (rhpfloor) | `∫ max(0, −gamma_t) dt` | Computed from `series.npz` or the model; not a separate method. |
-| Master-equation check, Eq. (master_equation) | `run(..., direct=False)` → `blp`, `lpp`, `msv`, `rhp` | Evolves the reconstructed generator with `qutip.mesolve`. `msv` sees only the polar and equatorial pairs (a lower bound on `msv_direct`); RHPE has no such route and falls back to `rhpe_direct`. |
+| Paper                                                              | Code                                                  | Notes                                                                                                                                                                                             |
+|--------------------------------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Newns density `J_N(ω)`, Eq. (newns)                                | `NonMarkovianModel._J`                                |                                                                                                                                                                                                   |
+| `φ(ω)`, Eq. (varphi)                                               | `NonMarkovianModel._phi`                              | Uses `ω − E − Re Σ = ω(1 − Γ/2Ω) − E` and `π J_N = (Γ/2Ω)√(Ω² − ω²)`.                                                                                                                             |
+| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound)               | `bound_states(E, Gamma, Omega)`                       | Returns `(ω_b, R_b)`; saved as `R_b` in `series.npz` and the CSVs.                                                                                                                                |
+| `G(t)`, Eqs. (G-fourier), (G-bound)                                | `G_t`, built in `compute_kernels`                     | Band integral on the grid `ω = Ω sin θ`, plus bound-state poles.                                                                                                                                  |
+| `γ(t) = −∂_t ln\|G\|²` and `H(t)`, Eq. (gammaH)                    | `gamma_t` and `H_t`                                   | `gamma_t` is the total rate γ(t); `Gamma` (capital) is always the coupling Γ.                                                                                                                     |
+| `Z_β(t)`, Eq. (noise_app)                                          | `Z_Tt`, built in `compute_rates`                      | Single-integral form `∫ J_N f \|g(ω,t)\|² dω`; the double integral (Eq. Zdouble) is kept as `fast=False`.                                                                                         |
+| `Λ^+ = Ż + γ Z`, `Λ^- = γ − Λ^+`, Eqs. (lambdaplus), (lambdaminus) | `Lambda_plus_t`, `Lambda_minus_t`                     | Checked in `_validate`: `G(0) = 1`, `γ(0) = 0`, `0 ≤ Z ≤ 1 − \|G\|²`.                                                                                                                             |
+| `N_BLP`, Eq. (blpbound)                                            | `blp_direct`                                          | `max(Σ₊Δ\|G\|, Σ₊Δ\|G\|²)`: the polar and equatorial endpoints of Appendix B 1. `theta_scan=True` scans the whole antipodal family.                                                               |
+| `N_LPP`, `det A = \|G\|⁴`                                          | `lpp_direct`                                          |                                                                                                                                                                                                   |
+| `N_MSV`, Eq. (msvbound)                                            | `msv_direct` (figures), `msv_families.py` (table)     | Best of the three families of Appendix B 3; a lower bound.                                                                                                                                        |
+| `N_RHPE`, concurrence Eq. (concurrence)                            | `rhpe_direct`                                         | `∫\|∂_t C\| − [C(0) − C(∞)]`, i.e. twice the summed increases of `C`.                                                                                                                             |
+| `N_RHP`, Eq. (RHPresult)                                           | `rhp_direct`                                          | `∫ max(0, −Λ^+) + max(0, −Λ^-) dt`. Diverges logarithmically at zeros of `G` (a warning is issued).                                                                                               |
+| RHP floor `N^(0)_RHP`, Eq. (rhpfloor)                              | `∫ max(0, −gamma_t) dt`                               | Computed from `series.npz` or the model; not a separate method.                                                                                                                                   |
+| Master-equation check, Eq. (master_equation)                       | `run(..., direct=False)` → `blp`, `lpp`, `msv`, `rhp` | Evolves the reconstructed generator with `qutip.mesolve`. `msv` sees only the polar and equatorial pairs (a lower bound on `msv_direct`); RHPE has no such route and falls back to `rhpe_direct`. |
 
 **Names.** Variables follow the paper: `gamma_t` = γ(t), `H_t` = H(t), `R_b` = residue, `Z_Tt` = Z_β(t) on the (T, t) grid, `Lambda_plus_t`/`Lambda_minus_t` = Λ^±(t), `A_mat` = the LPP matrix **A**, `s` = the longitudinal shift |G|² + 2Z_β − 1 (Appendix B 3). Archives written before this renaming used `Gamma_t`, `omega_eff_t` and `Z_b`; `replot.py` still reads them.
 
@@ -83,7 +83,7 @@ expensive at `tmax = 320`, but every array is saved, so appearance changes only 
 ```bash
 python quadratic_schematic.py              # -> figures/quadratic_model.{pdf,png}
 ```
-Fig. 2 (`Schemes/Spin_chain_illustration_V4.pdf`) is a drawing and is not generated here.
+Fig. 2 (`Schemes/Spin_chain_illustration_V6.pdf`) is a drawing and is not generated here.
 
 ### Figs. 3–5 — dynamics and measures at three parameter points
 Compute (writes `data/E_*/series.{csv,npz}` and appends to `data/sweep_measures.csv`):
@@ -168,13 +168,13 @@ print(res["BLP"], m._bound)                         # bound states [(omega_b, R_
 
 ## Data files
 
-| File | Contents |
-|---|---|
-| `data/E_<E>_Gamma_<Gamma>/series.npz` | `t`, `G`, `gamma_t` (= γ), `H_t` (= H), `T`, `Z_Tt`, `Lambda_plus_Tt`, `Lambda_minus_Tt`, the five measures over `T`, `sqrtJ_pol_panel_a`, and run metadata (`tmax`, `nt`, `min_absG`, `R_b`, …). |
-| `data/E_*/series.csv` | The panel-(a) time series as text. |
-| `data/E_*/mesolve_check.npz` | Master-equation BLP and LPP at the check temperatures. |
-| `data/sweep_measures.csv` | One row per `(E, Gamma, T)` from every `combined_panels.py` run. |
-| `data/blind_map.{npz,csv}` | The `(E, Gamma)` scan of Fig. 6. |
-| `data/mu_sweep_*.{npz,csv}` | The chemical-potential scans of Fig. 7. |
-| `data/conv_tmax*.csv`, `data/dip_tmax*.csv` | Fig. 3 point at `t_max = 160` and `320`: six temperatures, and the full Fig. 3 grid. |
-| `data/tab.{csv,tex}` | Table I. |
+| File                                        | Contents                                                                                                                                                                                          |
+|---------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `data/E_<E>_Gamma_<Gamma>/series.npz`       | `t`, `G`, `gamma_t` (= γ), `H_t` (= H), `T`, `Z_Tt`, `Lambda_plus_Tt`, `Lambda_minus_Tt`, the five measures over `T`, `sqrtJ_pol_panel_a`, and run metadata (`tmax`, `nt`, `min_absG`, `R_b`, …). |
+| `data/E_*/series.csv`                       | The panel-(a) time series as text.                                                                                                                                                                |
+| `data/E_*/mesolve_check.npz`                | Master-equation BLP and LPP at the check temperatures.                                                                                                                                            |
+| `data/sweep_measures.csv`                   | One row per `(E, Gamma, T)` from every `combined_panels.py` run.                                                                                                                                  |
+| `data/blind_map.{npz,csv}`                  | The `(E, Gamma)` scan of Fig. 6.                                                                                                                                                                  |
+| `data/mu_sweep_*.{npz,csv}`                 | The chemical-potential scans of Fig. 7.                                                                                                                                                           |
+| `data/conv_tmax*.csv`, `data/dip_tmax*.csv` | Fig. 3 point at `t_max = 160` and `320`: six temperatures, and the full Fig. 3 grid.                                                                                                              |
+| `data/tab.{csv,tex}`                        | Table I.                                                                                                                                                                                          |
