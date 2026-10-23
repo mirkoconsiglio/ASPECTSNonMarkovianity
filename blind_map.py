@@ -119,7 +119,7 @@ def scan(E_vals, G_vals, Omega=1.0, tmax=40.0, dt=0.01, n_omega=2049,
         bstates.append(bound_states(Ef[p], Gf[p], Omega))
     Phi *= sw[:, None]
     has_b = np.array([len(b) > 0 for b in bstates])
-    Zb = np.array([b[0][1] if b else np.nan for b in bstates])
+    Rb = np.array([b[0][1] if b else np.nan for b in bstates])
 
     rise_eq = np.zeros(P)
     rise_pol = np.zeros(P)
@@ -161,7 +161,7 @@ def scan(E_vals, G_vals, Omega=1.0, tmax=40.0, dt=0.01, n_omega=2049,
                rise_eq=rise_eq.reshape(shape), rise_pol=rise_pol.reshape(shape),
                max_step=max_step.reshape(shape), t_first=t_first.reshape(shape),
                min_absG=gmin.reshape(shape), G0_err=(g0 - 1).reshape(shape),
-               bound_state=has_b.reshape(shape), Z_b=Zb.reshape(shape))
+               bound_state=has_b.reshape(shape), R_b=Rb.reshape(shape))
     out["N_BLP"] = np.maximum(out["rise_eq"], out["rise_pol"])
     out["blind"] = out["max_step"] <= tol
     return out
@@ -172,7 +172,7 @@ def save_map(res, stem):
     np.savez_compressed(stem + ".npz", **res)
     EE, GG = np.meshgrid(res["E"], res["Gamma"], indexing="ij")
     cols = ["N_BLP", "blind", "rise_eq", "rise_pol", "max_step", "t_first",
-            "min_absG", "G0_err", "bound_state", "Z_b"]
+            "min_absG", "G0_err", "bound_state", "R_b"]
     data = np.column_stack([EE.ravel(), GG.ravel()] +
                            [np.asarray(res[k], float).ravel() for k in cols])
     np.savetxt(stem + ".csv", data, delimiter=",",

@@ -85,7 +85,7 @@ def test_zdot_sum_rule(E=2.0, nt=2001):
 	cfg = ModelConfig(E=E, mu=100.0, tmax=20.0, nt=nt, T=np.array([0.0]))
 	m = NonMarkovianModel(cfg, verbose=False)
 	m.compute_rates()
-	target = m.Gamma_t * np.abs(m.G_t) ** 2  # = -d|G|^2/dt
+	target = m.gamma_t * np.abs(m.G_t) ** 2  # = -d|G|^2/dt
 	assert np.max(np.abs(m.Z_dot_Tt[0] - target)) < 1e-8
 
 

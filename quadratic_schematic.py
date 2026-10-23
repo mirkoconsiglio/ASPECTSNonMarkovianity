@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 r"""Schematic of the generic quadratic system--bath model of Sec. II.
 
-A single fermionic mode d coupled to a reservoir of K modes c_k through an
+A single fermionic site d coupled to a reservoir of K sites c_k through an
 arbitrary quadratic Hamiltonian: normal terms U_ij f_i^dag f_j (solid) and
 pairing terms V_ij f_i^dag f_j^dag (dashed). The reservoir starts in a
 parity-even state, uncorrelated with the system.
@@ -20,9 +20,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle, FancyBboxPatch
 
-SYS = "#E07B39"      # system mode
+SYS = "#E07B39"      # system site
 SYS_FILL = "#FBE3D3"
-BATH = "#3A7CA5"     # reservoir modes
+BATH = "#3A7CA5"     # reservoir sites
 BATH_FILL = "#E6F0F7"
 BOX_FILL = "#F3F8FB"
 U_COL = "0.25"       # normal (hopping) terms
@@ -51,13 +51,13 @@ def use_style():
     })
 
 
-def mode(ax, xy, r, label, edge, fill, fs=8.5, z=3):
+def site(ax, xy, r, label, edge, fill, fs=8.5, z=3):
     ax.add_patch(Circle(xy, r, fc=fill, ec=edge, lw=1.1, zorder=z))
     ax.text(*xy, label, ha="center", va="center", fontsize=FS * fs, zorder=z + 1)
 
 
 def bond(ax, p, q, kind, r1, r2, lw=1.0, z=2):
-    """Line between the rims of two modes; kind 'U' solid, 'V' dashed."""
+    """Line between the rims of two sites; kind 'U' solid, 'V' dashed."""
     p, q = np.asarray(p, float), np.asarray(q, float)
     u = (q - p) / np.linalg.norm(q - p)
     a, b = p + r1 * u, q - r2 * u
@@ -72,11 +72,11 @@ def panel(ax):
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # ---------------- reservoir box and modes ----------------
+    # ---------------- reservoir box and sites ----------------
     ax.add_patch(FancyBboxPatch((4.15, 0.95), 5.55, 4.35,
                                 boxstyle="round,pad=0.02,rounding_size=0.35",
                                 fc=BOX_FILL, ec=BATH, lw=0.9, zorder=0))
-    ax.text(6.92, 4.98, r"reservoir: $K$ modes $\hat c_k$, $\hat H_B$",
+    ax.text(6.92, 4.98, r"reservoir: $K$ sites $\hat c_k$, $\hat H_B$",
             ha="center", va="center", fontsize=FS * 7.5, color=BATH)
 
     rb = 0.36
@@ -84,7 +84,7 @@ def panel(ax):
     labels = {1: r"$\hat c_1$", 2: r"$\hat c_2$", 3: r"$\hat c_3$",
               4: r"$\hat c_4$", 5: r"$\hat c_5$", "K": r"$\hat c_K$"}
     for k, xy in C.items():
-        mode(ax, xy, rb, labels[k], BATH, BATH_FILL, fs=7.5)
+        site(ax, xy, rb, labels[k], BATH, BATH_FILL, fs=7.5)
     ax.text(8.1, 3.1, r"$\cdots$", ha="center", va="center", fontsize=FS * 9)
 
     for (i, j, kind) in [(1, 3, "U"), (2, 3, "U"), (1, 2, "V"), (3, 4, "U"), (3, 5, "V"), (4, "K", "U"), (5, "K", "U")]:
@@ -106,13 +106,13 @@ def panel(ax):
     ax.text(6.92, 1.3, r"$\hat\rho_B$: e.g. Gibbs state at $(\beta,\mu)$",
             ha="center", va="center", fontsize=FS * 7)
 
-    # ---------------- system mode ----------------
+    # ---------------- system site ----------------
     D = (1.75, 3.05)
     rs = 0.55
-    mode(ax, D, rs, r"$\hat d$", SYS, SYS_FILL, fs=10)
+    site(ax, D, rs, r"$\hat d$", SYS, SYS_FILL, fs=10)
     ax.text(D[0], D[1] + 0.85, "system", ha="center", va="bottom",
             fontsize=FS * 7.5, color=SYS)
-    # two-level structure of the mode
+    # two-level structure of the site
     x0, x1 = 0.25, 0.75
     for y, lab in [(3.45, r"$|1\rangle$"), (2.65, r"$|0\rangle$")]:
         ax.plot([x0, x1], [y, y], color=SYS, lw=1.0)

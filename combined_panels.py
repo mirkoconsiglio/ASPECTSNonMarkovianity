@@ -80,7 +80,7 @@ _STYLE = {
 _ORDER = ("BLP", "LPP", "MSV", "RHPE", "RHP")
 
 CSV_FIELDS = ["E", "Gamma", "Omega", "mu", "T", *_ORDER,
-              "min_absG", "min_absG_t", "bound_state", "Z_b", "tmax", "nt"]
+              "min_absG", "min_absG_t", "bound_state", "R_b", "tmax", "nt"]
 
 
 # --------------------------------------------------------------------------- #
@@ -233,22 +233,22 @@ def draw_panel_a(model, iT, axs, shade_color="0.88", annotate=True,
     ax2 = axs[2] if len(axs) > 2 else None
 
     for ax in axs:
-        for (ta, tb) in negative_spans(t, model.Gamma_t):
+        for (ta, tb) in negative_spans(t, model.gamma_t):
             ax.axvspan(ta, tb, color=shade_color, lw=0, zorder=0)
 
     ax0.plot(t, g, color="C0")
     bound = getattr(model, "_bound", []) or []
     if bound:
-        Zb = bound[0][1]
-        ax0.axhline(Zb, color="C0", ls=":", lw=0.8)
-        ax0.annotate(r"$Z_b$", xy=(t[-1], Zb), xytext=(-2, 2),
+        Rb = bound[0][1]
+        ax0.axhline(Rb, color="C0", ls=":", lw=0.8)
+        ax0.annotate(r"$R_b$", xy=(t[-1], Rb), xytext=(-2, 2),
                      textcoords="offset points", ha="right", va="bottom",
                      color="C0", fontsize=8)
     ax0.set_ylabel(r"$|G(t)|$")
     ax0.set_ylim(model.G_abs_min - 0.02, 1.02)
 
     ax1.axhline(0.0, color="0.6", lw=0.6, zorder=1)
-    ax1.plot(t, model.Gamma_t, color="0.25", lw=0.9, label=r"$\gamma$")
+    ax1.plot(t, model.gamma_t, color="0.25", lw=0.9, label=r"$\gamma$")
     ax1.plot(t, model.Lambda_plus_t[iT], color="C3", label=r"$\Lambda^{+}$")
     ax1.plot(t, model.Lambda_minus_t[iT], color="C2", label=r"$\Lambda^{-}$")
     ax1.set_ylabel(r"rates$\,/\,\Omega$")
@@ -451,7 +451,7 @@ def build(E=2.0, Gamma=0.5, Omega=1.0, mu=0.0, tmax=40.0, nt=4001,
     info = dict(E=E, Gamma=Gamma, Omega=Omega, mu=mu, tmax=tmax, nt=nt,
                 min_absG=model.G_abs_min, min_absG_t=model.G_abs_min_t,
                 bound_state=bool(bound),
-                Z_b=(float(bound[0][1]) if bound else float("nan")),
+                R_b=(float(bound[0][1]) if bound else float("nan")),
                 iT_a=iT_a, T_panel_a=float(T_grid[iT_a]))
 
     if not make_fig:
@@ -510,17 +510,17 @@ def save_series(model, res, info, out_dir, fmt="both"):
     if fmt in ("csv", "both"):
         # Pure header + data: no comment lines, so pandas.read_csv works as is.
         # The parameters live in series.npz and in the folder name.
-        cols = np.column_stack([t, np.abs(G), np.angle(G), model.Gamma_t,
+        cols = np.column_stack([t, np.abs(G), np.angle(G), model.gamma_t,
                                 model.Lambda_plus_t[iT], model.Lambda_minus_t[iT],
                                 model.Z_Tt[iT], sJ])
         np.savetxt(os.path.join(out_dir, "series.csv"), cols, delimiter=",",
                    comments="",
-                   header="t,absG,argG,Gamma_t,Lambda_plus,Lambda_minus,Z,sqrtJ_pol")
+                   header="t,absG,argG,gamma_t,Lambda_plus,Lambda_minus,Z,sqrtJ_pol")
 
     if fmt in ("npz", "both"):
         payload = dict(
-            t=t, G=G, Gamma_t=np.asarray(model.Gamma_t, dtype=float),
-            omega_eff_t=np.asarray(getattr(model, "omega_eff_t", []), dtype=float),
+            t=t, G=G, gamma_t=np.asarray(model.gamma_t, dtype=float),
+            H_t=np.asarray(getattr(model, "H_t", []), dtype=float),
             T=np.asarray(res["T"], dtype=float),
             Z_Tt=np.asarray(model.Z_Tt, dtype=np.float32),
             Lambda_plus_Tt=np.asarray(model.Lambda_plus_t, dtype=np.float32),
@@ -529,7 +529,7 @@ def save_series(model, res, info, out_dir, fmt="both"):
             **{k: np.asarray(res[k], dtype=float) for k in _ORDER if k in res},
             **{k: np.asarray(info[k]) for k in
                ("E", "Gamma", "Omega", "mu", "tmax", "nt", "min_absG",
-                "min_absG_t", "bound_state", "Z_b", "iT_a", "T_panel_a")},
+                "min_absG_t", "bound_state", "R_b", "iT_a", "T_panel_a")},
         )
         np.savez_compressed(os.path.join(out_dir, "series.npz"), **payload)
 
@@ -540,7 +540,7 @@ def rows_from_run(res, info):
     for j, T in enumerate(np.asarray(res["T"])):
         row = {k: info[k] for k in ("E", "Gamma", "Omega", "mu",
                                     "min_absG", "min_absG_t", "bound_state",
-                                    "Z_b", "tmax", "nt")}
+                                    "R_b", "tmax", "nt")}
         row["T"] = float(T)
         for k in _ORDER:
             row[k] = float(np.asarray(res[k])[j]) if k in res else ""

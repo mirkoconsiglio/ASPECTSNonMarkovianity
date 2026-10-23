@@ -73,16 +73,23 @@ def default_out(npz_path):
     return os.path.join(d, "figure")
 
 
+def _key(z, new, old):
+    """Read ``new`` from a saved archive, falling back to the name used before
+    the variables were renamed to match the paper (``old``)."""
+    files = getattr(z, "files", z)
+    return z[new] if new in files else z[old]
+
+
 def model_from_npz(z, iT):
     """A stand-in carrying exactly the attributes the drawing code reads."""
-    bound = ([(float("nan"), float(z["Z_b"]))]
-             if bool(z["bound_state"]) and np.isfinite(z["Z_b"]) else [])
+    Rb = float(_key(z, "R_b", "Z_b"))
+    bound = ([(float("nan"), Rb)] if bool(z["bound_state"]) and np.isfinite(Rb) else [])
     cfg = SimpleNamespace(t=z["t"], T=z["T"], E=float(z["E"]),
                           Gamma=float(z["Gamma"]), Omega=float(z["Omega"]),
                           mu=float(z["mu"]), tmax=float(z["tmax"]),
                           nt=int(z["nt"]))
     return SimpleNamespace(
-        cfg=cfg, G_t=z["G"], Gamma_t=z["Gamma_t"],
+        cfg=cfg, G_t=z["G"], gamma_t=_key(z, "gamma_t", "Gamma_t"),
         Lambda_plus_t=np.asarray(z["Lambda_plus_Tt"], dtype=float),
         Lambda_minus_t=np.asarray(z["Lambda_minus_Tt"], dtype=float),
         Z_Tt=np.asarray(z["Z_Tt"], dtype=float),

@@ -15,18 +15,18 @@ For F = 0 the map acts differently on the two Bloch directions:
     transverse (coherences)  ->  scaled by |G(t)|, rotated by arg G(t)
     longitudinal (populations) -> scaled by |G(t)|^2, then shifted by
 
-        sigma(t) = |G(t)|^2 + 2 Z(T,t) - 1 .
+        s(t) = |G(t)|^2 + 2 Z(T,t) - 1 .
 
-All the bath dependence sits in sigma. Since J is unitarily invariant and the
+All the bath dependence sits in s. Since J is unitarily invariant and the
 rotation acts equally on both inputs, arg G drops out and a pair of inputs is
 fixed by five numbers (a1, w1, a2, w2, phi): transverse radii a_i, heights w_i
 (with a_i^2 + w_i^2 <= 1) and the relative azimuth phi. With
 eta(r) = h((1+r)/2) the entropy of a qubit of Bloch radius r,
 
     J = eta(m) - eta(r1)/2 - eta(r2)/2 ,
-    r_i^2 = |G|^2 a_i^2 + (|G|^2 w_i + sigma)^2 ,
+    r_i^2 = |G|^2 a_i^2 + (|G|^2 w_i + s)^2 ,
     m^2   = |G|^2 (a1^2 + a2^2 + 2 a1 a2 cos phi)/4
-            + (|G|^2 (w1 + w2) + 2 sigma)^2 / 4 .
+            + (|G|^2 (w1 + w2) + 2 s)^2 / 4 .
 
 Because N_MSV is a maximum over pairs, ANY family of pairs gives a lower bound.
 Three two-parameter families have closed forms:
@@ -89,32 +89,32 @@ def J_populations(absG: np.ndarray, Z: np.ndarray, c0: float, D0: float) -> np.n
 	return _h2(c) - 0.5 * _h2(c + D / 2.0) - 0.5 * _h2(c - D / 2.0)
 
 
-def J_coherences(absG: np.ndarray, sigma: np.ndarray, a: float, w: float) -> np.ndarray:
+def J_coherences(absG: np.ndarray, s: np.ndarray, a: float, w: float) -> np.ndarray:
 	"""Family (b): equal heights w, opposite coherences +-a (phi = pi).
 
 	The equatorial pair is (a, w) = (1, 0).
 	"""
-	z = absG ** 2 * w + sigma
+	z = absG ** 2 * w + s
 	r = np.sqrt((absG * a) ** 2 + z ** 2)
 	return _eta(np.abs(z)) - _eta(r)
 
 
-def J_antipodal(absG: np.ndarray, sigma: np.ndarray, a: float, w: float) -> np.ndarray:
+def J_antipodal(absG: np.ndarray, s: np.ndarray, a: float, w: float) -> np.ndarray:
 	"""Family (c): v2 = -v1 with v1 = (a, 0, w); the BLP family.
 
-	The mean Bloch vector is pair independent, m = |sigma|. Polar pair at
+	The mean Bloch vector is pair independent, m = |s|. Polar pair at
 	(a, w) = (0, 1), equatorial pair at (1, 0).
 	"""
 	g2 = absG ** 2
-	r1 = np.sqrt((absG * a) ** 2 + (g2 * w + sigma) ** 2)
-	r2 = np.sqrt((absG * a) ** 2 + (-g2 * w + sigma) ** 2)
-	return _eta(np.abs(sigma)) - 0.5 * _eta(r1) - 0.5 * _eta(r2)
+	r1 = np.sqrt((absG * a) ** 2 + (g2 * w + s) ** 2)
+	r2 = np.sqrt((absG * a) ** 2 + (-g2 * w + s) ** 2)
+	return _eta(np.abs(s)) - 0.5 * _eta(r1) - 0.5 * _eta(r2)
 
 
-def J_general(absG, sigma, a1, w1, a2, w2, phi):
+def J_general(absG, s, a1, w1, a2, w2, phi):
 	"""The general five-parameter pair (used by the free optimisation)."""
 	g2 = absG ** 2
-	z1, z2 = g2 * w1 + sigma, g2 * w2 + sigma
+	z1, z2 = g2 * w1 + s, g2 * w2 + s
 	r1 = np.sqrt((absG * a1) ** 2 + z1 ** 2)
 	r2 = np.sqrt((absG * a2) ** 2 + z2 ** 2)
 	m = 0.5 * np.sqrt(g2 * (a1 ** 2 + a2 ** 2 + 2.0 * a1 * a2 * np.cos(phi))
@@ -135,19 +135,19 @@ def _grid_populations(absG, Z, n: int) -> Tuple[float, Tuple[float, float]]:
 	return best, arg
 
 
-def _grid_disc(fun, absG, sigma, n: int) -> Tuple[float, Tuple[float, float]]:
+def _grid_disc(fun, absG, s, n: int) -> Tuple[float, Tuple[float, float]]:
 	"""Maximise over the unit half-disc a >= 0, a^2 + w^2 <= 1."""
 	best, arg = 0.0, (0.0, 1.0)
 	for a in np.linspace(0.0, 1.0, n):
 		wmax = np.sqrt(max(1.0 - a * a, 0.0))
 		for w in np.linspace(-wmax, wmax, 2 * n - 1):
-			v = _revivals(fun(absG, sigma, a, w))
+			v = _revivals(fun(absG, s, a, w))
 			if v > best:
 				best, arg = v, (float(a), float(w))
 	return best, arg
 
 
-def _free_optimum(absG, sigma, nstart: int, seed: int) -> Tuple[float, np.ndarray]:
+def _free_optimum(absG, s, nstart: int, seed: int) -> Tuple[float, np.ndarray]:
 	"""Multistart Nelder-Mead over (a1, w1, a2, w2, phi). Diagnostic only."""
 	from scipy.optimize import minimize
 	
@@ -158,7 +158,7 @@ def _free_optimum(absG, sigma, nstart: int, seed: int) -> Tuple[float, np.ndarra
 		        and a2 * a2 + w2 * w2 <= 1.0 + 1e-12)
 	
 	def neg(p):
-		return -_revivals(J_general(absG, sigma, *p)) if ok(p) else 1e3
+		return -_revivals(J_general(absG, s, *p)) if ok(p) else 1e3
 	
 	rng = np.random.default_rng(seed)
 	best, arg = 0.0, None
@@ -190,16 +190,16 @@ def family_values(model: NonMarkovianModel, iT: int, n_grid: int = 121,
 	model.compute_rates()
 	absG = np.abs(model.G_t)
 	Z = np.asarray(model.Z_Tt[iT], dtype=float)
-	sigma = absG ** 2 + 2.0 * Z - 1.0
+	s = absG ** 2 + 2.0 * Z - 1.0
 	
 	out: Dict = {"T": float(model.cfg.T[iT])}
 	out["polar"] = _revivals(J_populations(absG, Z, 0.5, 1.0))
 	out["populations"], out["populations_arg"] = _grid_populations(absG, Z, n_grid)
-	out["coherences"], out["coherences_arg"] = _grid_disc(J_coherences, absG, sigma, n_grid)
-	out["antipodal"], out["antipodal_arg"] = _grid_disc(J_antipodal, absG, sigma, n_grid)
+	out["coherences"], out["coherences_arg"] = _grid_disc(J_coherences, absG, s, n_grid)
+	out["antipodal"], out["antipodal_arg"] = _grid_disc(J_antipodal, absG, s, n_grid)
 	out["bound"] = max(out[k] for k in FAMILIES)
 	if free:
-		out["free"], out["free_arg"] = _free_optimum(absG, sigma, nstart, seed)
+		out["free"], out["free_arg"] = _free_optimum(absG, s, nstart, seed)
 	return out
 
 

@@ -52,9 +52,9 @@ chain has no pairing terms). Equation names are the `\label`s in the manuscript'
 |---|---|---|
 | Newns density `J_N(ω)`, Eq. (newns) | `NonMarkovianModel._J` | |
 | `φ(ω)`, Eq. (varphi) | `NonMarkovianModel._phi` | Uses `ω − E − Re Σ = ω(1 − Γ/2Ω) − E` and `π J_N = (Γ/2Ω)√(Ω² − ω²)`. |
-| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound) | `bound_states(E, Gamma, Omega)` | Returns `(ω_b, R_b)`. The saved outputs (`series.npz`, CSV columns) still call the residue `Z_b`. |
+| Localized levels `ω_b`, residue `R_b`, Eq. (G-bound) | `bound_states(E, Gamma, Omega)` | Returns `(ω_b, R_b)`; saved as `R_b` in `series.npz` and the CSVs. |
 | `G(t)`, Eqs. (G-fourier), (G-bound) | `G_t`, built in `compute_kernels` | Band integral on the grid `ω = Ω sin θ`, plus bound-state poles. |
-| `γ(t) = −∂_t ln|G|²` and `H(t)`, Eq. (gammaH) | `Gamma_t` and `omega_eff_t` | `Gamma_t` is the paper's **γ(t)**, not the coupling `Γ`. |
+| `γ(t) = −∂_t ln|G|²` and `H(t)`, Eq. (gammaH) | `gamma_t` and `H_t` | `gamma_t` is the total rate γ(t); `Gamma` (capital) is always the coupling Γ. |
 | `Z_β(t)`, Eq. (noise_app) | `Z_Tt`, built in `compute_rates` | Single-integral form `∫ J_N f |g(ω,t)|² dω`; the double integral (Eq. Zdouble) is kept as `fast=False`. |
 | `Λ^+ = Ż + γ Z`, `Λ^- = γ − Λ^+`, Eqs. (lambdaplus), (lambdaminus) | `Lambda_plus_t`, `Lambda_minus_t` | Checked in `_validate`: `G(0) = 1`, `γ(0) = 0`, `0 ≤ Z ≤ 1 − |G|²`. |
 | `N_BLP`, Eq. (blpbound) | `blp_direct` | `max(Σ₊Δ|G|, Σ₊Δ|G|²)`: the polar and equatorial endpoints of Appendix B 1. `theta_scan=True` scans the whole antipodal family. |
@@ -62,8 +62,10 @@ chain has no pairing terms). Equation names are the `\label`s in the manuscript'
 | `N_MSV`, Eq. (msvbound) | `msv_direct` (figures), `msv_families.py` (table) | Best of the three families of Appendix B 3; a lower bound. |
 | `N_RHPE`, concurrence Eq. (concurrence) | `rhpe_direct` | `∫|∂_t C| − [C(0) − C(∞)]`, i.e. twice the summed increases of `C`. |
 | `N_RHP`, Eq. (RHPresult) | `rhp_direct` | `∫ max(0, −Λ^+) + max(0, −Λ^-) dt`. Diverges logarithmically at zeros of `G` (a warning is issued). |
-| RHP floor `N^(0)_RHP`, Eq. (rhpfloor) | `∫ max(0, −Gamma_t) dt` | Computed from `series.npz` or the model; not a separate method. |
+| RHP floor `N^(0)_RHP`, Eq. (rhpfloor) | `∫ max(0, −gamma_t) dt` | Computed from `series.npz` or the model; not a separate method. |
 | Master-equation check, Eq. (master_equation) | `run(..., direct=False)` → `blp`, `lpp`, `msv`, `rhp` | Evolves the reconstructed generator with `qutip.mesolve`. `msv` sees only the polar and equatorial pairs (a lower bound on `msv_direct`); RHPE has no such route and falls back to `rhpe_direct`. |
+
+**Names.** Variables follow the paper: `gamma_t` = γ(t), `H_t` = H(t), `R_b` = residue, `Z_Tt` = Z_β(t) on the (T, t) grid, `Lambda_plus_t`/`Lambda_minus_t` = Λ^±(t), `A_mat` = the LPP matrix **A**, `s` = the longitudinal shift |G|² + 2Z_β − 1 (Appendix B 3). Archives written before this renaming used `Gamma_t`, `omega_eff_t` and `Z_b`; `replot.py` still reads them.
 
 **Index convention.** Inside the code, index 0 is the **occupied** state and index 1 the vacuum, because
 QuTiP's `sigmap() = |0><1|`. This mirrors the paper, where `|0>` is the vacuum. When comparing code with
@@ -168,7 +170,7 @@ print(res["BLP"], m._bound)                         # bound states [(omega_b, R_
 
 | File | Contents |
 |---|---|
-| `data/E_<E>_Gamma_<Gamma>/series.npz` | `t`, `G`, `Gamma_t` (= γ), `omega_eff_t` (= H), `T`, `Z_Tt`, `Lambda_plus_Tt`, `Lambda_minus_Tt`, the five measures over `T`, `sqrtJ_pol_panel_a`, and run metadata (`tmax`, `nt`, `min_absG`, `Z_b` = `R_b`, …). |
+| `data/E_<E>_Gamma_<Gamma>/series.npz` | `t`, `G`, `gamma_t` (= γ), `H_t` (= H), `T`, `Z_Tt`, `Lambda_plus_Tt`, `Lambda_minus_Tt`, the five measures over `T`, `sqrtJ_pol_panel_a`, and run metadata (`tmax`, `nt`, `min_absG`, `R_b`, …). |
 | `data/E_*/series.csv` | The panel-(a) time series as text. |
 | `data/E_*/mesolve_check.npz` | Master-equation BLP and LPP at the check temperatures. |
 | `data/sweep_measures.csv` | One row per `(E, Gamma, T)` from every `combined_panels.py` run. |

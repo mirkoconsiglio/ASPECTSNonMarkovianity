@@ -83,14 +83,14 @@ def sweep(E, Gamma, T_list, mu_grid, Omega=1.0, tmax=40.0, nt=4001,
 	# N_RHP >= int max(0, -Gamma) dt, saturated when f is flat over the band.
 	wS = np.ones(nt)
 	wS[1:-1:2], wS[2:-1:2] = 4.0, 2.0
-	rhp_floor = float(np.sum(wS * np.clip(-model.Gamma_t, 0.0, None)) * cfg.dt / 3.0)
+	rhp_floor = float(np.sum(wS * np.clip(-model.gamma_t, 0.0, None)) * cfg.dt / 3.0)
 	g2_end = abs(model.G_t[-1]) ** 2
 	zfrac = model.Z_Tt[:, -1] / max(1.0 - g2_end, 1e-300)
 	bound = getattr(model, "_bound", []) or []
 	out = dict(E=E, Gamma=Gamma, Omega=Omega, T=T_list, mu=mu_grid,
 	           tmax=tmax, nt=nt, min_absG=model.G_abs_min,
 	           bound_state=bool(bound),
-	           Z_b=float(bound[0][1]) if bound else np.nan,
+	           R_b=float(bound[0][1]) if bound else np.nan,
 	           omega_b=float(bound[0][0]) if bound else np.nan,
 	           rhp_floor=rhp_floor,
 	           zfrac=zfrac.reshape(nT, nmu))

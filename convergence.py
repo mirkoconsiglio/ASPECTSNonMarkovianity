@@ -73,7 +73,7 @@ def run_window(E, Gamma, Omega, mu, tmax, nt, verbose=True):
     info = dict(E=E, Gamma=Gamma, Omega=Omega, mu=mu, tmax=tmax, nt=nt,
                 min_absG=m.G_abs_min, min_absG_t=m.G_abs_min_t,
                 bound_state=bool(bound),
-                Z_b=float(bound[0][1]) if bound else float("nan"))
+                R_b=float(bound[0][1]) if bound else float("nan"))
     return rows_from_run(res, info), np.array(pop_gain), T
 
 
